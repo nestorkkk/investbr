@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InvestBR — Cérebro do Investidor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08090d;
+  --surface: #0f1118;
+  --surface2: #161923;
+  --border: #1e2535;
+  --accent: #00e5a0;
+  --accent2: #0077ff;
+  --danger: #ff3b5c;
+  --warn: #ffb930;
+  --text: #e8eaf2;
+  --muted: #5a6180;
+  --safe: #00e5a0;
+  --risky: #ff3b5c;
+  --hard: #ffb930;
+  --easy: #0077ff;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Noise texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+/* Header */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 40px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: rgba(8,9,13,0.92);
+  backdrop-filter: blur(20px);
+  z-index: 100;
+}
+
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2rem;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logo span {
+  -webkit-text-fill-color: var(--muted);
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.live-dot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+}
+
+.live-dot::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.4); }
+}
+
+#clock { font-variant-numeric: tabular-nums; }
+
+/* Layout */
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: calc(100vh - 70px);
+}
+
+/* Sidebar */
+.sidebar {
+  border-right: 1px solid var(--border);
+  padding: 24px 0;
+  position: sticky;
+  top: 70px;
+  height: calc(100vh - 70px);
+  overflow-y: auto;
+}
+
+.sidebar::-webkit-scrollbar { width: 3px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.sidebar-section {
+  margin-bottom: 32px;
+}
+
+.sidebar-label {
+  font-size: 0.62rem;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-transform: uppercase;
+  padding: 0 24px;
+  margin-bottom: 12px;
+}
+
+.filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 24px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.filter-btn:hover, .filter-btn.active {
+  color: var(--text);
+  background: rgba(255,255,255,0.03);
+}
+
+.filter-btn.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+
+.filter-btn[data-cat="all"].active::before { background: var(--accent); }
+.filter-btn[data-cat="seguro"].active::before { background: var(--safe); }
+.filter-btn[data-cat="arriscado"].active::before { background: var(--risky); }
+.filter-btn[data-cat="dificil"].active::before { background: var(--hard); }
+.filter-btn[data-cat="facil"].active::before { background: var(--easy); }
+
+.cat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cat-dot.seguro { background: var(--safe); }
+.cat-dot.arriscado { background: var(--risky); }
+.cat-dot.dificil { background: var(--hard); }
+.cat-dot.facil { background: var(--easy); }
+.cat-dot.all { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+
+.cat-count {
+  margin-left: auto;
+  font-size: 0.65rem;
+  background: var(--surface2);
+  padding: 2px 7px;
+  border-radius: 20px;
+  color: var(--muted);
+}
+
+/* Mini ticker sidebar */
+.mini-ticker {
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mini-asset {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 0.72rem;
+  transition: border-color 0.2s;
+}
+
+.mini-asset:hover { border-color: var(--muted); }
+
+.mini-asset-name { color: var(--text); font-weight: 500; }
+.mini-asset-price { color: var(--muted); }
+.mini-asset-change { font-size: 0.66rem; padding: 2px 6px; border-radius: 4px; }
+.mini-asset-change.up { color: var(--safe); background: rgba(0,229,160,0.1); }
+.mini-asset-change.down { color: var(--risky); background: rgba(255,59,92,0.1); }
+
+/* Main content */
+main {
+  padding: 32px 40px;
+}
+
+/* Ticker bar */
+.ticker-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 32px;
+  position: relative;
+}
+
+.ticker-inner {
+  display: flex;
+  gap: 0;
+  animation: ticker 40s linear infinite;
+  white-space: nowrap;
+}
+
+.ticker-inner:hover { animation-play-state: paused; }
+
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-right: 1px solid var(--border);
+  font-size: 0.73rem;
+  flex-shrink: 0;
+}
+
+.ticker-name { color: var(--muted); }
+.ticker-price { color: var(--text); font-weight: 500; }
+.ticker-change.up { color: var(--safe); }
+.ticker-change.down { color: var(--risky); }
+
+/* Section headers */
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.section-sub {
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+/* Recommendation grid */
+.recs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.rec-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  transition: all 0.25s;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  animation: fadeUp 0.5s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.rec-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.rec-card:hover { transform: translateY(-2px); border-color: var(--muted); }
+.rec-card:hover::before { opacity: 1; }
+
+.rec-card[data-cat="seguro"]::before { background: linear-gradient(135deg, rgba(0,229,160,0.04), transparent); }
+.rec-card[data-cat="arriscado"]::before { background: linear-gradient(135deg, rgba(255,59,92,0.04), transparent); }
+.rec-card[data-cat="dificil"]::before { background: linear-gradient(135deg, rgba(255,185,48,0.04), transparent); }
+.rec-card[data-cat="facil"]::before { background: linear-gradient(135deg, rgba(0,119,255,0.04), transparent); }
+
+.rec-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.rec-ticker {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+
+.rec-badge {
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.rec-badge.seguro { background: rgba(0,229,160,0.12); color: var(--safe); border: 1px solid rgba(0,229,160,0.2); }
+.rec-badge.arriscado { background: rgba(255,59,92,0.12); color: var(--risky); border: 1px solid rgba(255,59,92,0.2); }
+.rec-badge.dificil { background: rgba(255,185,48,0.12); color: var(--hard); border: 1px solid rgba(255,185,48,0.2); }
+.rec-badge.facil { background: rgba(0,119,255,0.12); color: var(--easy); border: 1px solid rgba(0,119,255,0.2); }
+
+.rec-name {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.rec-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.rec-price {
+  font-family: 'Fraunces', serif;
+  font-size: 1.6rem;
+  font-weight: 300;
+  color: var(--text);
+}
+
+.rec-change {
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.rec-change.up { color: var(--safe); background: rgba(0,229,160,0.1); }
+.rec-change.down { color: var(--risky); background: rgba(255,59,92,0.1); }
+
+.rec-analysis {
+  font-size: 0.73rem;
+  color: var(--muted);
+  line-height: 1.6;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.rec-loading {
+  font-size: 0.7rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rec-loading::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Score bar */
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+.score-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.score-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s ease;
+}
+
+.score-fill.seguro { background: var(--safe); }
+.score-fill.arriscado { background: var(--risky); }
+.score-fill.dificil { background: var(--hard); }
+.score-fill.facil { background: var(--easy); }
+
+/* News section */
+.news-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.news-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  transition: all 0.2s;
+  cursor: pointer;
+  animation: fadeUp 0.5s ease both;
+}
+
+.news-card:hover { border-color: var(--muted); transform: translateY(-1px); }
+
+.news-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.news-source {
+  font-size: 0.62rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.news-time { font-size: 0.65rem; color: var(--muted); }
+
+.news-title {
+  font-family: 'Fraunces', serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.news-summary { font-size: 0.72rem; color: var(--muted); line-height: 1.6; }
+
+.news-impact {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 0.62rem;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.news-impact.alta { background: rgba(0,229,160,0.1); color: var(--safe); }
+.news-impact.media { background: rgba(255,185,48,0.1); color: var(--hard); }
+.news-impact.baixa { background: rgba(90,97,128,0.15); color: var(--muted); }
+
+/* Events section */
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+.event-item {
+  display: grid;
+  grid-template-columns: 80px 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+  animation: fadeUp 0.5s ease both;
+}
+
+.event-item:hover { border-color: var(--muted); }
+
+.event-date {
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.event-name { color: var(--text); font-weight: 500; }
+.event-country { color: var(--muted); font-size: 0.65rem; }
+
+.event-importance {
+  display: flex;
+  gap: 3px;
+}
+
+.imp-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.imp-dot.filled { background: var(--warn); }
+
+.event-forecast {
+  text-align: right;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.event-forecast strong { color: var(--text); }
+
+/* Generate button */
+.generate-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, rgba(0,229,160,0.1), rgba(0,119,255,0.1));
+  border: 1px solid rgba(0,229,160,0.2);
+  border-radius: 8px;
+  color: var(--accent);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+}
+
+.generate-btn:hover {
+  background: linear-gradient(135deg, rgba(0,229,160,0.18), rgba(0,119,255,0.18));
+  border-color: rgba(0,229,160,0.4);
+  transform: translateY(-1px);
+}
+
+.generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.generate-btn .btn-icon {
+  font-size: 0.9rem;
+  animation: none;
+}
+
+.generate-btn.loading .btn-icon {
+  animation: spin 0.8s linear infinite;
+}
+
+/* Alert banner */
+.alert-banner {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  background: rgba(255,185,48,0.08);
+  border: 1px solid rgba(255,185,48,0.2);
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 0.75rem;
+  color: var(--hard);
+  animation: slideIn 0.3s ease;
+}
+
+.alert-banner.show { display: flex; }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.alert-close {
+  margin-left: auto;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.alert-close:hover { opacity: 1; }
+
+/* AI Chat Panel */
+.ai-panel {
+  position: fixed;
+  right: 0;
+  top: 70px;
+  bottom: 0;
+  width: 380px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+  z-index: 50;
+}
+
+.ai-panel.open { transform: translateX(0); }
+
+.ai-panel-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ai-panel-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-panel-title::before {
+  content: '✦';
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.ai-close-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: color 0.2s;
+}
+.ai-close-btn:hover { color: var(--text); }
+
+.ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-messages::-webkit-scrollbar { width: 3px; }
+.ai-messages::-webkit-scrollbar-thumb { background: var(--border); }
+
+.ai-msg {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  line-height: 1.65;
+  animation: fadeUp 0.3s ease;
+  max-width: 90%;
+}
+
+.ai-msg.user {
+  background: rgba(0,119,255,0.1);
+  border: 1px solid rgba(0,119,255,0.15);
+  color: var(--text);
+  align-self: flex-end;
+}
+
+.ai-msg.assistant {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  align-self: flex-start;
+}
+
+.ai-msg.thinking {
+  color: var(--muted);
+  font-style: italic;
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  font-size: 0.68rem;
+}
+
+.ai-input-row {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+}
+
+.ai-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.73rem;
+  outline: none;
+  transition: border-color 0.2s;
+  resize: none;
+  min-height: 40px;
+  max-height: 120px;
+}
+
+.ai-input:focus { border-color: var(--accent); }
+.ai-input::placeholder { color: var(--muted); }
+
+.ai-send-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #000;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: opacity 0.2s;
+  align-self: flex-end;
+}
+
+.ai-send-btn:hover { opacity: 0.85; }
+.ai-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* AI Toggle button */
+.ai-toggle {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  border-radius: 50px;
+  padding: 12px 20px;
+  color: #000;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 8px 32px rgba(0,229,160,0.2);
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.ai-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0,229,160,0.3);
+}
+
+/* Stats overview */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  animation: fadeUp 0.4s ease both;
+}
+
+.stat-label {
+  font-size: 0.62rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-family: 'Fraunces', serif;
+  font-size: 1.8rem;
+  font-weight: 300;
+  color: var(--text);
+  line-height: 1;
+}
+
+.stat-value.green { color: var(--safe); }
+.stat-value.red { color: var(--risky); }
+
+.stat-delta {
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Filter tabs */
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.filter-tab {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+}
+
+.filter-tab:hover { border-color: var(--muted); color: var(--text); }
+.filter-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,160,0.05); }
+.filter-tab[data-cat="arriscado"].active { border-color: var(--risky); color: var(--risky); background: rgba(255,59,92,0.05); }
+.filter-tab[data-cat="dificil"].active { border-color: var(--hard); color: var(--hard); background: rgba(255,185,48,0.05); }
+.filter-tab[data-cat="facil"].active { border-color: var(--easy); color: var(--easy); background: rgba(0,119,255,0.05); }
+
+/* Responsive tweaks */
+@media (max-width: 1100px) {
+  .news-grid { grid-template-columns: 1fr; }
+  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 800px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  main { padding: 20px; }
+  header { padding: 14px 20px; }
+  .ai-panel { width: 100%; }
+}
+
+.hidden { display: none !important; }
+
+/* Inline spinner */
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Skeleton loader */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 4px;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">InvestBR <span>/ BRASIL</span></div>
+  <div class="header-meta">
+    <div class="live-dot">AO VIVO</div>
+    <div id="clock">--:--:--</div>
+    <button class="generate-btn" id="refreshBtn" onclick="fullRefresh()">
+      <span class="btn-icon">↻</span> Atualizar Tudo
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Categorias</div>
+      <button class="filter-btn active" data-cat="all" onclick="filterCards('all', this)">
+        <div class="cat-dot all"></div> Todos
+        <span class="cat-count" id="cnt-all">0</span>
+      </button>
+      <button class="filter-btn" data-cat="seguro" onclick="filterCards('seguro', this)">
+        <div class="cat-dot seguro"></div> Seguro
+        <span class="cat-count" id="cnt-seguro">0</span>
+      </button>
+      <button class="filter-btn" data-cat="arriscado" onclick="filterCards('arriscado', this)">
+        <div class="cat-dot arriscado"></div> Arriscado
+        <span class="cat-count" id="cnt-arriscado">0</span>
+      </button>
+      <button class="filter-btn" data-cat="dificil" onclick="filterCards('dificil', this)">
+        <div class="cat-dot dificil"></div> Difícil
+        <span class="cat-count" id="cnt-dificil">0</span>
+      </button>
+      <button class="filter-btn" data-cat="facil" onclick="filterCards('facil', this)">
+        <div class="cat-dot facil"></div> Fácil
+        <span class="cat-count" id="cnt-facil">0</span>
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Mercados</div>
+      <div class="mini-ticker" id="miniTicker">
+        <div class="mini-asset skeleton" style="height:40px;"></div>
+        <div class="mini-asset skeleton" style="height:40px;"></div>
+        <div class="mini-asset skeleton" style="height:40px;"></div>
+        <div class="mini-asset skeleton" style="height:40px;"></div>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <!-- Alert banner -->
+    <div class="alert-banner" id="alertBanner">
+      <span>⚠</span>
+      <span id="alertText">Mercado com alta volatilidade detectada</span>
+      <span class="alert-close" onclick="document.getElementById('alertBanner').classList.remove('show')">✕</span>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">IBOVESPA</div>
+        <div class="stat-value" id="stat-ibov">—</div>
+        <div class="stat-delta" id="stat-ibov-d">carregando...</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">USD/BRL</div>
+        <div class="stat-value" id="stat-dolar">—</div>
+        <div class="stat-delta" id="stat-dolar-d">carregando...</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">SELIC</div>
+        <div class="stat-value green">14,75%</div>
+        <div class="stat-delta">ao ano · vigente</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">IPCA 12m</div>
+        <div class="stat-value" id="stat-ipca">—</div>
+        <div class="stat-delta" id="stat-ipca-d">últimos 12 meses</div>
+      </div>
+    </div>
+
+    <!-- Ticker bar -->
+    <div class="ticker-bar">
+      <div class="ticker-inner" id="tickerInner">
+        <!-- will be populated -->
+      </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="section-header">
+      <div class="section-title">Recomendações de IA</div>
+      <div class="section-sub">ANÁLISE EM TEMPO REAL</div>
+      <button class="generate-btn" id="genBtn" onclick="generateAnalysis()" style="margin-left: auto;">
+        <span class="btn-icon">✦</span> Gerar Análises
+      </button>
+    </div>
+
+    <div class="filter-tabs">
+      <button class="filter-tab active" data-cat="all" onclick="filterCards('all', this)">Todos</button>
+      <button class="filter-tab" data-cat="seguro" onclick="filterCards('seguro', this)">🟢 Seguro</button>
+      <button class="filter-tab" data-cat="arriscado" onclick="filterCards('arriscado', this)">🔴 Arriscado</button>
+      <button class="filter-tab" data-cat="dificil" onclick="filterCards('dificil', this)">🟡 Difícil</button>
+      <button class="filter-tab" data-cat="facil" onclick="filterCards('facil', this)">🔵 Fácil</button>
+    </div>
+
+    <div class="recs-grid" id="recsGrid">
+      <!-- skeleton -->
+      <div class="rec-card skeleton" style="height:180px;"></div>
+      <div class="rec-card skeleton" style="height:180px;"></div>
+      <div class="rec-card skeleton" style="height:180px;"></div>
+      <div class="rec-card skeleton" style="height:180px;"></div>
+    </div>
+
+    <!-- News -->
+    <div class="section-header">
+      <div class="section-title">Notícias & Alertas</div>
+      <div class="section-sub">ÚLTIMAS 24H</div>
+    </div>
+
+    <div class="news-grid" id="newsGrid">
+      <div class="news-card skeleton" style="height:140px;"></div>
+      <div class="news-card skeleton" style="height:140px;"></div>
+      <div class="news-card skeleton" style="height:140px;"></div>
+      <div class="news-card skeleton" style="height:140px;"></div>
+    </div>
+
+    <!-- Events -->
+    <div class="section-header">
+      <div class="section-title">Próximos Eventos</div>
+      <div class="section-sub">CALENDÁRIO ECONÔMICO</div>
+    </div>
+
+    <div class="events-list" id="eventsList">
+      <div class="event-item skeleton" style="height:50px;"></div>
+      <div class="event-item skeleton" style="height:50px;"></div>
+      <div class="event-item skeleton" style="height:50px;"></div>
+    </div>
+  </main>
+</div>
+
+<!-- AI Chat Panel -->
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-panel-header">
+    <div class="ai-panel-title">Analista IA</div>
+    <button class="ai-close-btn" onclick="toggleAI()">✕</button>
+  </div>
+  <div class="ai-messages" id="aiMessages">
+    <div class="ai-msg assistant">
+      Olá! Sou seu analista de investimentos com IA. Posso analisar ativos, explicar estratégias, avaliar riscos e responder suas dúvidas sobre o mercado brasileiro. Como posso ajudar?
+    </div>
+  </div>
+  <div class="ai-input-row">
+    <textarea class="ai-input" id="aiInput" placeholder="Pergunte sobre qualquer ativo..." rows="1" onkeydown="handleAIKey(event)"></textarea>
+    <button class="ai-send-btn" id="aiSendBtn" onclick="sendAIMessage()">→</button>
+  </div>
+</div>
+
+<button class="ai-toggle" onclick="toggleAI()">✦ Analista IA</button>
+
+<script>
+// ─────────────────────────────────────────────
+// MARKET DATA (simulado com dados reais aproximados)
+// ─────────────────────────────────────────────
+const MARKET_DATA = {
+  IBOV: { price: 131240, change: +0.82 },
+  "USD/BRL": { price: 5.741, change: -0.31 },
+  "EUR/BRL": { price: 6.23, change: +0.14 },
+  "BTC/USD": { price: 82450, change: +2.11 },
+  PETR4: { price: 36.82, change: +1.24 },
+  VALE3: { price: 58.91, change: -0.67 },
+  ITUB4: { price: 34.15, change: +0.38 },
+  BBDC4: { price: 14.22, change: -1.02 },
+  WEGE3: { price: 48.70, change: +1.55 },
+  MGLU3: { price: 7.85, change: -2.34 },
+  TOTS3: { price: 23.40, change: +0.91 },
+  RENT3: { price: 54.30, change: -0.45 },
+  OURO: { price: 16820, change: +0.33 },
+  "CDI": { price: 14.75, change: 0 },
+};
+
+// Investments to analyze
+const INVESTMENTS = [
+  { ticker: "PETR4", name: "Petrobras ON", cat: "arriscado", score: 62 },
+  { ticker: "VALE3", name: "Vale S.A.", cat: "dificil", score: 55 },
+  { ticker: "TESOURO SELIC", name: "Tesouro Selic 2029", cat: "seguro", score: 95 },
+  { ticker: "WEGE3", name: "WEG S.A.", cat: "facil", score: 78 },
+  { ticker: "ITUB4", name: "Itaú Unibanco", cat: "seguro", score: 82 },
+  { ticker: "MGLU3", name: "Magazine Luiza", cat: "arriscado", score: 35 },
+  { ticker: "CDB 120%", name: "CDB 120% CDI", cat: "facil", score: 85 },
+  { ticker: "TOTS3", name: "Totvs S.A.", cat: "facil", score: 72 },
+];
+
+const NEWS_DATA = [
+  { title: "Copom mantém Selic em 14,75% e sinaliza cautela para 2025", source: "BANCO CENTRAL", time: "há 2h", summary: "Comitê de Política Monetária decide pela manutenção da taxa básica de juros, citando pressões inflacionárias persistentes e incertezas no cenário externo.", impact: "alta" },
+  { title: "Petrobras anuncia dividendos extraordinários de R$0,64 por ação", source: "PETROBRAS RI", time: "há 4h", summary: "Conselho de administração aprova distribuição de proventos referentes ao resultado do quarto trimestre, com pagamento previsto para abril.", impact: "alta" },
+  { title: "IPCA de março surpreende mercado e fica abaixo das expectativas", source: "IBGE", time: "há 6h", summary: "Índice de inflação ao consumidor registra alta de 0,39% no mês, abaixo do consenso de mercado de 0,45%, aliviando pressão sobre política monetária.", impact: "media" },
+  { title: "Ibovespa fecha em alta influenciado por dados externos positivos", source: "B3", time: "há 8h", summary: "Principal índice da bolsa brasileira encerra sessão em terreno positivo após dados do mercado de trabalho americano virem abaixo do esperado.", impact: "media" },
+  { title: "Vale registra queda na produção de minério no 1T25", source: "VALE RI", time: "há 12h", summary: "Mineradora informa redução de 7% na produção no primeiro trimestre, pressionada por chuvas no Pará e manutenção programada em Carajás.", impact: "baixa" },
+  { title: "Dólar recua ante real com melhora do apetite global por risco", source: "BCB", time: "há 14h", summary: "Moeda americana fecha em queda após dados positivos da China impulsionarem commodities e divisas de países emergentes.", impact: "baixa" },
+];
+
+const EVENTS_DATA = [
+  { date: "01/04", name: "PIB Brasil (4T24)", country: "🇧🇷", importance: 3, forecast: "2.8%", prev: "2.1%" },
+  { date: "02/04", name: "ISM Manufatura EUA", country: "🇺🇸", importance: 2, forecast: "50.3", prev: "50.3" },
+  { date: "04/04", name: "Payroll EUA (Mar)", country: "🇺🇸", importance: 3, forecast: "140k", prev: "151k" },
+  { date: "07/04", name: "Reunião Copom", country: "🇧🇷", importance: 3, forecast: "14.75%", prev: "14.75%" },
+  { date: "09/04", name: "IPCA Março (2ª prévia)", country: "🇧🇷", importance: 2, forecast: "0.41%", prev: "0.39%" },
+  { date: "10/04", name: "CPI EUA (Março)", country: "🇺🇸", importance: 3, forecast: "3.1%", prev: "3.2%" },
+];
+
+// ─────────────────────────────────────────────
+// CLOCK
+// ─────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─────────────────────────────────────────────
+// TICKER BAR
+// ─────────────────────────────────────────────
+function buildTicker() {
+  const items = Object.entries(MARKET_DATA).map(([k, v]) => {
+    const up = v.change >= 0;
+    const price = k.includes('/') || k === 'CDI' ? v.price.toFixed(2) : k === 'BTC/USD' ? v.price.toLocaleString('pt-BR') : k === 'IBOV' ? v.price.toLocaleString('pt-BR') : v.price.toFixed(2);
+    return `<div class="ticker-item">
+      <span class="ticker-name">${k}</span>
+      <span class="ticker-price">${k === 'IBOV' || k === 'OURO' ? 'R$' : ''}${price}</span>
+      <span class="ticker-change ${up ? 'up' : 'down'}">${up ? '+' : ''}${v.change.toFixed(2)}%</span>
+    </div>`;
+  }).join('');
+  // Duplicate for infinite scroll
+  document.getElementById('tickerInner').innerHTML = items + items;
+}
+
+// ─────────────────────────────────────────────
+// MINI TICKER (sidebar)
+// ─────────────────────────────────────────────
+function buildMiniTicker() {
+  const assets = ['PETR4','VALE3','ITUB4','WEGE3','BTC/USD','OURO'];
+  document.getElementById('miniTicker').innerHTML = assets.map(k => {
+    const v = MARKET_DATA[k];
+    const up = v.change >= 0;
+    return `<div class="mini-asset">
+      <div>
+        <div class="mini-asset-name">${k}</div>
+        <div class="mini-asset-price">R$ ${typeof v.price === 'number' && v.price > 1000 ? v.price.toLocaleString('pt-BR') : v.price.toFixed(2)}</div>
+      </div>
+      <div class="mini-asset-change ${up ? 'up' : 'down'}">${up ? '+' : ''}${v.change.toFixed(2)}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────
+// STATS BAR
+// ─────────────────────────────────────────────
+function buildStats() {
+  const ibov = MARKET_DATA['IBOV'];
+  const dolar = MARKET_DATA['USD/BRL'];
+  
+  const ibovEl = document.getElementById('stat-ibov');
+  ibovEl.textContent = ibov.price.toLocaleString('pt-BR');
+  ibovEl.className = 'stat-value ' + (ibov.change >= 0 ? 'green' : 'red');
+  document.getElementById('stat-ibov-d').textContent = `${ibov.change >= 0 ? '+' : ''}${ibov.change.toFixed(2)}% hoje`;
+
+  const dolarEl = document.getElementById('stat-dolar');
+  dolarEl.textContent = `R$ ${dolar.price.toFixed(3)}`;
+  dolarEl.className = 'stat-value ' + (dolar.change >= 0 ? 'red' : 'green');
+  document.getElementById('stat-dolar-d').textContent = `${dolar.change >= 0 ? '+' : ''}${dolar.change.toFixed(2)}% hoje`;
+
+  document.getElementById('stat-ipca').textContent = '4,83%';
+  document.getElementById('stat-ipca-d').textContent = 'acum. fev/2025 · IBGE';
+}
+
+// ─────────────────────────────────────────────
+// RECOMMENDATIONS (AI powered)
+// ─────────────────────────────────────────────
+let currentFilter = 'all';
+let analysisCache = {};
+
+function buildRecCards(data) {
+  document.getElementById('recsGrid').innerHTML = '';
+  
+  // Update counts
+  const counts = { seguro: 0, arriscado: 0, dificil: 0, facil: 0 };
+  data.forEach(d => counts[d.cat]++);
+  document.getElementById('cnt-all').textContent = data.length;
+  document.getElementById('cnt-seguro').textContent = counts.seguro;
+  document.getElementById('cnt-arriscado').textContent = counts.arriscado;
+  document.getElementById('cnt-dificil').textContent = counts.dificil;
+  document.getElementById('cnt-facil').textContent = counts.facil;
+
+  data.forEach((inv, i) => {
+    const price = MARKET_DATA[inv.ticker] ? MARKET_DATA[inv.ticker].price : null;
+    const change = MARKET_DATA[inv.ticker] ? MARKET_DATA[inv.ticker].change : null;
+    const up = change !== null ? change >= 0 : true;
+    const catLabels = { seguro: 'Seguro', arriscado: 'Arriscado', dificil: 'Difícil', facil: 'Fácil' };
+    
+    const card = document.createElement('div');
+    card.className = `rec-card ${currentFilter !== 'all' && inv.cat !== currentFilter ? 'hidden' : ''}`;
+    card.dataset.cat = inv.cat;
+    card.style.animationDelay = `${i * 0.06}s`;
+    
+    const priceDisplay = price !== null 
+      ? `<span class="rec-price">R$ ${price > 1000 ? price.toLocaleString('pt-BR') : price.toFixed(2)}</span>
+         ${change !== null ? `<span class="rec-change ${up ? 'up' : 'down'}">${up ? '+' : ''}${change.toFixed(2)}%</span>` : ''}`
+      : `<span class="rec-price" style="font-size:1.1rem;color:var(--muted)">—</span>`;
+
+    card.innerHTML = `
+      <div class="rec-card-top">
+        <div class="rec-ticker">${inv.ticker}</div>
+        <div class="rec-badge ${inv.cat}">${catLabels[inv.cat]}</div>
+      </div>
+      <div class="rec-name">${inv.name}</div>
+      <div class="rec-price-row">${priceDisplay}</div>
+      <div class="score-row">
+        SCORE
+        <div class="score-bar"><div class="score-fill ${inv.cat}" style="width:${inv.score}%"></div></div>
+        ${inv.score}/100
+      </div>
+      <div class="rec-analysis" id="analysis-${inv.ticker.replace(/\s+/g,'-')}">
+        <div class="rec-loading">Aguardando análise IA...</div>
+      </div>
+    `;
+    
+    document.getElementById('recsGrid').appendChild(card);
+  });
+}
+
+async function generateAnalysis() {
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.innerHTML = '<span class="btn-icon">↻</span> Analisando...';
+
+  // Generate for all
+  for (const inv of INVESTMENTS) {
+    const key = inv.ticker;
+    const elId = `analysis-${inv.ticker.replace(/\s+/g,'-')}`;
+    const el = document.getElementById(elId);
+    if (!el) continue;
+
+    if (analysisCache[key]) {
+      el.textContent = analysisCache[key];
+      continue;
+    }
+
+    el.innerHTML = '<div class="rec-loading">Consultando IA...</div>';
+
+    const price = MARKET_DATA[inv.ticker] ? MARKET_DATA[inv.ticker].price : 'N/D';
+    const change = MARKET_DATA[inv.ticker] ? MARKET_DATA[inv.ticker].change : 0;
+    
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{
+            role: "user",
+            content: `Você é um analista financeiro especialista no mercado brasileiro. Analise o seguinte ativo em 2-3 frases curtas e diretas, focando no contexto atual do mercado brasileiro (Selic 14,75%, dólar a R$5,74, IBOV em 131.240 pts):
+
+Ativo: ${inv.name} (${inv.ticker})
+Categoria: ${inv.cat} 
+Preço atual: R$ ${price}
+Variação hoje: ${change}%
+
+Forneça uma análise concisa com: perspectiva atual, risco/retorno e recomendação para o investidor brasileiro. Seja direto e técnico. Máximo 60 palavras.`
+          }]
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const text = data.content[0].text;
+        analysisCache[key] = text;
+        el.textContent = text;
+      } else {
+        el.textContent = getFallbackAnalysis(inv);
+      }
+    } catch (e) {
+      el.textContent = getFallbackAnalysis(inv);
+    }
+
+    await new Promise(r => setTimeout(r, 200));
+  }
+
+  btn.disabled = false;
+  btn.classList.remove('loading');
+  btn.innerHTML = '<span class="btn-icon">✦</span> Regerar Análises';
+}
+
+function getFallbackAnalysis(inv) {
+  const analyses = {
+    seguro: "Com a Selic em 14,75%, este ativo oferece boa relação risco/retorno para perfil conservador. Recomendado para base da carteira com proteção contra inflação.",
+    arriscado: "Ativo com beta elevado e correlação com commodities/câmbio. Adequado para perfil arrojado com horizonte de longo prazo e tolerância a volatilidade.",
+    dificil: "Requer análise fundamentalista aprofundada. Cenário de juros altos pressiona valuations, mas perspectivas setoriais são favoráveis para 12-24 meses.",
+    facil: "Boa opção para iniciantes com liquidez diária e risco controlado. Retorno previsível alinhado ao CDI, ideal para reserva de emergência e objetivo de médio prazo."
+  };
+  return analyses[inv.cat];
+}
+
+// ─────────────────────────────────────────────
+// NEWS
+// ─────────────────────────────────────────────
+function buildNews() {
+  document.getElementById('newsGrid').innerHTML = NEWS_DATA.map((n, i) => `
+    <div class="news-card" style="animation-delay:${i*0.07}s">
+      <div class="news-card-header">
+        <div class="news-source">${n.source}</div>
+        <div class="news-time">${n.time}</div>
+      </div>
+      <div class="news-title">${n.title}</div>
+      <div class="news-summary">${n.summary}</div>
+      <div class="news-impact ${n.impact}">
+        ${n.impact === 'alta' ? '↑ Alto impacto' : n.impact === 'media' ? '→ Médio impacto' : '↓ Baixo impacto'}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─────────────────────────────────────────────
+// EVENTS
+// ─────────────────────────────────────────────
+function buildEvents() {
+  document.getElementById('eventsList').innerHTML = EVENTS_DATA.map((e, i) => `
+    <div class="event-item" style="animation-delay:${i*0.05}s">
+      <div class="event-date">${e.date}</div>
+      <div>
+        <div class="event-name">${e.name}</div>
+        <div class="event-country">${e.country}</div>
+      </div>
+      <div class="event-importance">
+        ${[1,2,3].map(n => `<div class="imp-dot ${n <= e.importance ? 'filled' : ''}"></div>`).join('')}
+      </div>
+      <div class="event-forecast">
+        <strong>${e.forecast}</strong><br>ant: ${e.prev}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─────────────────────────────────────────────
+// FILTER
+// ─────────────────────────────────────────────
+function filterCards(cat, btn) {
+  currentFilter = cat;
+  
+  // Update all sidebar buttons
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.cat === cat);
+  });
+  
+  // Update all tab buttons
+  document.querySelectorAll('.filter-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.cat === cat);
+  });
+  
+  // Filter cards
+  document.querySelectorAll('.rec-card').forEach(card => {
+    const show = cat === 'all' || card.dataset.cat === cat;
+    card.classList.toggle('hidden', !show);
+  });
+}
+
+// ─────────────────────────────────────────────
+// AI CHAT
+// ─────────────────────────────────────────────
+let aiOpen = false;
+const aiHistory = [];
+
+function toggleAI() {
+  aiOpen = !aiOpen;
+  document.getElementById('aiPanel').classList.toggle('open', aiOpen);
+}
+
+function handleAIKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendAIMessage();
+  }
+}
+
+async function sendAIMessage() {
+  const input = document.getElementById('aiInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  const sendBtn = document.getElementById('aiSendBtn');
+  sendBtn.disabled = true;
+  input.value = '';
+
+  appendAIMsg('user', msg);
+  aiHistory.push({ role: 'user', content: msg });
+
+  const thinking = appendAIMsg('thinking', '⟳ Analisando mercado...');
+
+  try {
+    const systemPrompt = `Você é um analista financeiro especializado no mercado de capitais brasileiro. 
+Contexto atual do mercado (${new Date().toLocaleDateString('pt-BR')}):
+- IBOVESPA: 131.240 pts (+0,82%)
+- USD/BRL: R$ 5,741 (-0,31%)
+- SELIC: 14,75% a.a.
+- IPCA acumulado 12m: 4,83%
+- Petrobras (PETR4): R$ 36,82 (+1,24%)
+- Vale (VALE3): R$ 58,91 (-0,67%)
+- Itaú (ITUB4): R$ 34,15 (+0,38%)
+
+Seja conciso, técnico e focado no investidor brasileiro. Use dados reais aproximados.`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: aiHistory
+      })
+    });
+
+    thinking.remove();
+
+    if (response.ok) {
+      const data = await response.json();
+      const reply = data.content[0].text;
+      appendAIMsg('assistant', reply);
+      aiHistory.push({ role: 'assistant', content: reply });
+    } else {
+      appendAIMsg('assistant', 'Erro ao conectar com a IA. Verifique sua conexão e tente novamente.');
+    }
+  } catch (e) {
+    thinking.remove();
+    appendAIMsg('assistant', 'Não foi possível conectar. Verifique se a API Key está configurada corretamente no arquivo.');
+  }
+
+  sendBtn.disabled = false;
+}
+
+function appendAIMsg(role, text) {
+  const container = document.getElementById('aiMessages');
+  const div = document.createElement('div');
+  div.className = `ai-msg ${role}`;
+  div.textContent = text;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+// ─────────────────────────────────────────────
+// FULL REFRESH
+// ─────────────────────────────────────────────
+async function fullRefresh() {
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.innerHTML = '<span class="btn-icon">↻</span> Atualizando...';
+
+  // Simulate price movements
+  Object.keys(MARKET_DATA).forEach(k => {
+    const v = MARKET_DATA[k];
+    const jitter = (Math.random() - 0.5) * 0.4;
+    MARKET_DATA[k].change = parseFloat((v.change + jitter).toFixed(2));
+    if (k !== 'CDI') {
+      MARKET_DATA[k].price = parseFloat((v.price * (1 + jitter/100)).toFixed(k === 'IBOV' ? 0 : 2));
+    }
+  });
+
+  buildTicker();
+  buildMiniTicker();
+  buildStats();
+  buildRecCards(INVESTMENTS);
+  analysisCache = {};
+
+  // Show alert occasionally
+  if (Math.random() > 0.5) {
+    const alerts = [
+      'Volatilidade acima da média detectada em PETR4',
+      'Dólar ultrapassou R$5,80 na máxima intradiária',
+      'Ibovespa rompe resistência dos 131.500 pontos',
+      'Dado macro dos EUA impacta mercados emergentes',
+    ];
+    document.getElementById('alertText').textContent = alerts[Math.floor(Math.random()*alerts.length)];
+    document.getElementById('alertBanner').classList.add('show');
+  }
+
+  await new Promise(r => setTimeout(r, 1200));
+  btn.disabled = false;
+  btn.classList.remove('loading');
+  btn.innerHTML = '<span class="btn-icon">↻</span> Atualizar Tudo';
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+function init() {
+  buildTicker();
+  buildMiniTicker();
+  buildStats();
+  buildRecCards(INVESTMENTS);
+  buildNews();
+  buildEvents();
+
+  // Auto-refresh every 30s
+  setInterval(() => {
+    Object.keys(MARKET_DATA).forEach(k => {
+      const jitter = (Math.random() - 0.5) * 0.15;
+      MARKET_DATA[k].change = parseFloat((MARKET_DATA[k].change + jitter).toFixed(2));
+    });
+    buildTicker();
+    buildMiniTicker();
+    buildStats();
+  }, 30000);
+}
+
+init();
+</script>
+</body>
+</html>
